@@ -1,15 +1,50 @@
 var socket;
+var playernum1;
+var playernum2;
+var player;
+var players = [];
+
+var Player = function(id, name, x, y, speed){
+    this.id = id;
+    this.name = name;
+    this.x = x;
+    this.y = y;
+    this.speed = speed;
+    this.draw = function(){
+
+        fill(200,50,50)
+        beginShape();
+        vertex(this.x, this.y - 45);
+        vertex( this.x - 30, this.y + 45);
+        vertex(this.x, this.y + 37);
+        vertex(this.x + 30, this.y + 45);
+        endShape(CLOSE);
+
+    }
+    return false;
+}
+
+
 
 function preload() {
     // write code
 }
 function setup() {
     // write code
+
+
     socket = io();
-    socket.emit("message", "J'entre dans le serveur !")
-    socket.on('messageFromServer', function(data){
-        console.log(data);
+
+    socket.emit("ImReady", {name : "name"});
+    socket.on("YourId", function(data){
+        myId = data.id;
     })
+    socket.on("NewPlayer", function(data){
+        player = new Player(data.id, "Name", data.x, data.y, data.speed)
+        players.push(player);
+    })
+
+    
 
     createCanvas(windowWidth, windowHeight);
 
@@ -37,34 +72,31 @@ function speedtot(speed){
     console.log(Math.sqrt((speedX(speed)^2))+(speedY(speed)^2));
 }
 
-var x = 0;
-var y = 200;
-
-var speed = 5;
 
 function draw() {
-    // write code
+    // Drawing
     background(0,204,204);
     
-    translate(windowWidth/2 - x ,windowHeight/2 - y);
+    socket.on("NewPlayer", function(data){
+        player = new Player(data.id, "Name", data.x, data.y, data.speed)
+        players.push(player);
+    })
+
+    if(players[0]){
+        translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
+
+        players[0].x += speedX(players[0].speed);
+        players[0].y += speedY(players[0].speed);
+    }
 
     fill(51);
     rect(-300, 150, 800, 600);
 
-    fill(200,50,50)
-    beginShape();
-    vertex(x, y - 45);
-    vertex( x - 30, y + 45);
-    vertex(x ,y + 37);
-    vertex(x + 30, y + 45);
-    endShape(CLOSE);
-
-    //x += speed * Math.cos(angle(pmouseX-width/2, pmouseY-height/2)); // radiant = arctan(x/y)
-    //y += speed * Math.sin(angle(pmouseX-width/2, pmouseY-height/2));
-
-    x += speedX(speed);
-    y += speedY(speed);
-
-    speedtot();
+    for(var i in players){
+        players[i].draw();
+    }
     
+
+    // Control
+
 }
