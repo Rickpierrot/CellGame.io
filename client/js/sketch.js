@@ -119,7 +119,9 @@ function speedY(speed){
 
 function draw() {
     // Drawing
+    setTimeout(console.log(),100);
     background(0,204,204);
+    
     
     if(players[0]){
         translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
@@ -134,25 +136,6 @@ function draw() {
     for(var i in players){
         players[i].draw();
     }
-    /*
-    socket.on("NewPlayer", function(data){
-
-        if (idNotInPlayers(players, data)){
-            player = new Player(data.id, "Name", data.x, data.y, data.speed);
-            players.push(player);
-    
-            console.log("One player created");
-        }
-        else{
-            for (var i in players){
-                if(players[i].id === data.id){
-                    players[i].x = data.x;
-                    players[i].y = data.y;
-                }
-            }
-        }
-    })
-    */
     if (players[0]){
         socket.emit("MyPosition", { 
             id: myId,
