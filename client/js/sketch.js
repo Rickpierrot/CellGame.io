@@ -1,6 +1,5 @@
 var socket;
-var playernum1;
-var playernum2;
+var myId;
 var player;
 var players = [];
 
@@ -35,6 +34,15 @@ var Player = function(id, name, x, y, speed){
     return false;
 }
 
+function idNotInPlayers(players, data){
+    for (var i in players){
+        if(players[i].id === data.id){
+            return false;
+        }
+        return true;
+    }
+}
+
 
 
 function preload() {
@@ -50,25 +58,40 @@ function setup() {
         myId = data.id;
         //console.log(myId);
     })
-    socket.on("NewPlayer", function(data){
-  
+    socket.on("CurrentElements", function(data){
         player = new Player(data.id, "Name", data.x, data.y, data.speed);
         players.push(player);
     
-        console.log("One player created");
+        console.log("Other players created");
+    })
+
+    socket.on("NewPlayer", function(data){
+  
+        player = new Player(data.id, "Name", data.x, data.y, data.speed);
+        if (player.id === myId){
+            players.unshift(player);
+        }
+        else{
+            players.push(player);
+        }
+        
+        console.log("My player created at x:" + player.x, " and y: " + player.y);
+        socket.on("Update", function(data){
+            //console.log("Mon id: " + myId + "  id reçu en upload: " + data.id);
+
+            
+            for (var i in players){
+                //console.log(players[i].id)
+                if(players[i].id === data.id){
+                    players[i].x = data.x;
+                    players[i].y = data.y;
+                    //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
+                }
+            }
+        })
 
     });
-    socket.on("Update", function(data){
-        console.log(myId);
-        for (var i in players){
-            console.log(players[i].id)
-            if(players[i].id === data.id){
-                players[i].x = data.x;
-                players[i].y = data.y;
-                //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
-            }
-        }
-    })
+
 
     createCanvas(windowWidth, windowHeight);
 
@@ -140,5 +163,6 @@ function draw() {
     
 
     // Control
+
 
 }

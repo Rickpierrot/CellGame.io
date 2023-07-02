@@ -34,28 +34,32 @@ io.on('connection', function(socket){
 
     socket.on("ImReady", function(data){
 
+        for(var i in players){
+            socket.emit("CurrentElements", players[i].getinfo());
+            console.log("id : " + players[i].id + "  x : " + players[i].x + "  y : " + players[i].y);
+        }
 
         player = new Player(socket.id, data.name, 0, 0, 3);
         players.push(player);
 
         socket.emit("YourId", {id : player.id});
+
         io.emit("NewPlayer", player.getinfo());
+
+
         console.log(" Nombre de players : " + players.length);
         socket.on("MyPosition", function(data){
             for (var i in players){
                 if (players[i].id === socket.id){
                     players[i].x = data.x;
                     players[i].y = data.y;
-                    //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
-
-        
-                    io.emit("Update", { 
-                        id: players[0].id,
-                        x: players[0].x,
-                        y : players[0].y,
-                        speed : players[0].speed});
                     
                 }
+                io.local.emit("Update", { 
+                    id: players[i].id,
+                    x: players[i].x,
+                    y : players[i].y,
+                    speed : players[i].speed});
             }
         })
         
