@@ -12,7 +12,6 @@ var server = http.createServer(app); // create a server on a file responsibility
 var io = socketio(server); // connecting the socket library to the server
 app.use(express.static(publicPath)); // This send client folder to each client who connect
 
-var player;
 var players = [];
 
 // run the server on port
@@ -20,18 +19,51 @@ server.listen(port, function(){
     console.log("Server started successfully on port " + port);
 });
 
+function idNotInPlayers(players, data){
+    for (var i in players){
+        if(players[i].id === data.id){
+            return false;
+        }
+        return true;
+    }
+}
+
 // the client information will be stored in the socket parameter
 io.on('connection', function(socket){
     console.log("Someone's connected, id : " + socket.id);
 
     socket.on("ImReady", function(data){
-        player = new Player(socket.id, "Name", 0, 0, 0.1);
+
+
+        player = new Player(socket.id, data.name, 0, 0, 3);
         players.push(player);
 
         socket.emit("YourId", {id : player.id});
         io.emit("NewPlayer", player.getinfo());
+        console.log(" Nombre de players : " + players.length);
+        socket.on("MyPosition", function(data){
+            for (var i in players){
+                if (players[i].id === socket.id){
+                    players[i].x = data.x;
+                    players[i].y = data.y;
+                    //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
+
+        
+                    io.emit("Update", { 
+                        id: players[0].id,
+                        x: players[0].x,
+                        y : players[0].y,
+                        speed : players[0].speed});
+                    
+                }
+            }
+        })
+        
     })
 });
+
+
+
 
 var Player = function(id, name, x, y, speed){
     this.id = id;
@@ -52,6 +84,7 @@ var Player = function(id, name, x, y, speed){
     }
 
     this.getinfo = function(){
+        console.log("getinfo()")
         return{
             id : this.id,
             x : this.x,

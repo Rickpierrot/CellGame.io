@@ -4,6 +4,8 @@ var playernum2;
 var player;
 var players = [];
 
+socket = io();
+
 var Player = function(id, name, x, y, speed){
     this.id = id;
     this.name = name;
@@ -21,6 +23,15 @@ var Player = function(id, name, x, y, speed){
         endShape(CLOSE);
 
     }
+    this.getinfo = function(){
+        console.log("getinfo()")
+        return{
+            id : this.id,
+            x : this.x,
+            y : this.y,
+            speed : this.speed
+        }
+    }
     return false;
 }
 
@@ -33,18 +44,31 @@ function setup() {
     // write code
 
 
-    socket = io();
 
     socket.emit("ImReady", {name : "name"});
     socket.on("YourId", function(data){
         myId = data.id;
+        //console.log(myId);
     })
     socket.on("NewPlayer", function(data){
-        player = new Player(data.id, "Name", data.x, data.y, data.speed)
+  
+        player = new Player(data.id, "Name", data.x, data.y, data.speed);
         players.push(player);
-    })
-
     
+        console.log("One player created");
+
+    });
+    socket.on("Update", function(data){
+        console.log(myId);
+        for (var i in players){
+            console.log(players[i].id)
+            if(players[i].id === data.id){
+                players[i].x = data.x;
+                players[i].y = data.y;
+                //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
+            }
+        }
+    })
 
     createCanvas(windowWidth, windowHeight);
 
@@ -68,32 +92,50 @@ function speedY(speed){
     return speed * Math.sin(angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2));
 }
 
-function speedtot(speed){
-    console.log(Math.sqrt((speedX(speed)^2))+(speedY(speed)^2));
-}
 
 
 function draw() {
     // Drawing
     background(0,204,204);
     
-    socket.on("NewPlayer", function(data){
-        player = new Player(data.id, "Name", data.x, data.y, data.speed)
-        players.push(player);
-    })
-
     if(players[0]){
         translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
 
         players[0].x += speedX(players[0].speed);
         players[0].y += speedY(players[0].speed);
     }
-
+    console.log(" Nombre de players : " + players.length)
     fill(51);
     rect(-300, 150, 800, 600);
 
     for(var i in players){
         players[i].draw();
+    }
+    /*
+    socket.on("NewPlayer", function(data){
+
+        if (idNotInPlayers(players, data)){
+            player = new Player(data.id, "Name", data.x, data.y, data.speed);
+            players.push(player);
+    
+            console.log("One player created");
+        }
+        else{
+            for (var i in players){
+                if(players[i].id === data.id){
+                    players[i].x = data.x;
+                    players[i].y = data.y;
+                }
+            }
+        }
+    })
+    */
+    if (players[0]){
+        socket.emit("MyPosition", { 
+            id: myId,
+            x: players[0].x,
+            y : players[0].y,
+            speed : players[0].speed});
     }
     
 
