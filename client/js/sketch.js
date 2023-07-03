@@ -15,8 +15,8 @@ var Player = function(id, name, x, y, speed, dx, dy){
     this.dy = dy;
     this.draw = function(){
 
-        this.x += this.dx;
-        this.y += this.dy;
+        //this.x += this.dx;
+        //this.y += this.dy;
 
         fill(200,50,50)
         beginShape();
@@ -85,7 +85,7 @@ function setup() {
             if (players[0]){
                 socket.emit("MyPosition", players[0].getinfo());
             }
-            seePlayers(players);
+
 
             socket.on("Update", function(data){
                 
@@ -100,20 +100,20 @@ function setup() {
                         //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
                     }
                 }
-                socket.on("DeleteThisId", function(data){
-                    var indexID;
-                    for (var i in players){
-                        if (players[i].id === data){
-                            indexID = i;
-                        }
-                    }
-                    players = players.splice(indexID, 1);
-
-                })
             })
         })
     });
+    socket.on("DeleteThisId", function(data){
+        var indexID;
+        for (var i in players){
+            if (players[i].id === data){
+                indexID = i;
+            }
+        }
+        console.log( "Destroy ID:" + data);
+        players.splice(indexID, 1);
 
+    })
 }
 
 function angle(x, y){
@@ -141,6 +141,9 @@ function draw() {
     
     if(players[0]){
         translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
+
+        players[0].x += players[0].dx;
+        players[0].y += players[0].dy;
 
         players[0].dx = speedX(players[0].speed);
         players[0].dy = speedY(players[0].speed);

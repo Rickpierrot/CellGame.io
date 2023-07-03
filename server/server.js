@@ -95,6 +95,24 @@ io.on('connection', function(socket){
 
         io.emit("NewPlayer", player.getinfo());
 
+        socket.on("disconnect", () => {
+            console.log(socket.id + " is disconnected.");
+            var indexID;
+        
+            for (var i in players){
+                if (players[i].id === socket.id){
+                    indexID = i;
+                }
+            }
+        
+            console.log("Delete : " + socket.id + "  i : " + i);
+            
+            if (players.length === 1){players = []}
+            else {players.splice(indexID, 1)}
+
+            io.emit("DeleteThisId", socket.id);
+        });
+
         socket.on("MyPosition", function(data){
             for (var i in players){
                 if (players[i].id === socket.id){
@@ -112,21 +130,4 @@ io.on('connection', function(socket){
         })
         
     })
-    socket.on("disconnect", () => {
-        console.log(socket.id + " is disconnected.");
-        var indexID;
-
-        for (var i in players){
-            if (players[i].id === socket.id){
-                indexID = i;
-            }
-        }
-
-        console.log("Delete : " + socket.id + "  i : " + i);
-
-        if (players.length === 1){players = []}
-        else {players = players.splice(indexID, 1)}
-
-        io.local.emit("DeleteThisId", socket.id);
-      });
-});
+})
