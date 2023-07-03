@@ -40,6 +40,14 @@ var Player = function(id, name, x, y, speed, dx, dy){
     return false;
 }
 
+function seePlayers(players){
+    console.log("-----------------------------------------------------------");
+    for (var i in players){
+        console.log ("ID:" + players[i].id + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y)
+    }
+    console.log("-----------------------------------------------------------");
+}
+
 
 function preload() {
     // write code
@@ -71,12 +79,13 @@ function setup() {
             players.push(player);
         }
         
-        console.log("My player created at x:" + player.x, " and y: " + player.y);
+        console.log("Player created at x:" + player.x, " and y: " + player.y);
 
         socket.on("Ping", function(){
             if (players[0]){
                 socket.emit("MyPosition", players[0].getinfo());
             }
+            seePlayers(players);
 
             socket.on("Update", function(data){
                 
@@ -91,6 +100,16 @@ function setup() {
                         //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
                     }
                 }
+                socket.on("DeleteThisId", function(data){
+                    var indexID;
+                    for (var i in players){
+                        if (players[i].id === data){
+                            indexID = i;
+                        }
+                    }
+                    players = players.splice(indexID, 1);
+
+                })
             })
         })
     });

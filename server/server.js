@@ -47,12 +47,20 @@ var Player = function(id, name, x, y, speed, dx, dy){
     }
     return false;
 }
+function seePlayers(players){
+    console.log("-----------------------------------------------------------");
+    for (var i in players){
+        console.log ("ID:" + players[i].id + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y)
+    }
+    console.log("-----------------------------------------------------------");
+}
 
 function update(){
     setTimeout(() => {
 
         io.local.emit("Ping", true);
         //console.log("Ping n°" + i);
+        //seePlayers(players);
 
         update(i++);
     }, 150)
@@ -96,7 +104,7 @@ io.on('connection', function(socket){
                     players[i].dx = data.dx;
                     players[i].dy = data.dy;
 
-                    console.log("Data de " + players[i].id);
+                    //console.log("Data de " + players[i].id);
                     io.local.emit("Update", players[i].getinfo());
                 }
             }
@@ -104,4 +112,21 @@ io.on('connection', function(socket){
         })
         
     })
+    socket.on("disconnect", () => {
+        console.log(socket.id + " is disconnected.");
+        var indexID;
+
+        for (var i in players){
+            if (players[i].id === socket.id){
+                indexID = i;
+            }
+        }
+
+        console.log("Delete : " + socket.id + "  i : " + i);
+
+        if (players.length === 1){players = []}
+        else {players = players.splice(indexID, 1)}
+
+        io.local.emit("DeleteThisId", socket.id);
+      });
 });
