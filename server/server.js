@@ -1,8 +1,18 @@
+/* ===============================================================================================
+Procédure :
+Input - 
+Output - 
+-------------------------------------------------------------------------------------------------- */
+
+// ---------------------------------------------------------------------------------------------
+// Initialisation du server et des ses dépendences
+// ---------------------------------------------------------------------------------------------
+
 var path = require("path"); // path to the game
 var http = require("http"); // create the server
 var express = require("express"); // sending and receiving file
 var socketio = require("socket.io"); // sending and receiving data
-var victor = require("victor");
+var victor = require("victor"); // dépendance utilisant les vecteurs
 
 var publicPath = path.join(__dirname,"../client"); // it join 2 path together
 
@@ -13,18 +23,37 @@ var io = socketio(server); // connecting the socket library to the server
 app.use(express.static(publicPath)); // This send client folder to each client who connect
 
 
-var Player = function(id, name, x, y, speed, dx, dy){
+/* ===============================================================================================
+Objet : Player caractèrise toute les données d'un joueur
+Input : 
+- id : INT id du joueur
+- name : STRING Nom du joueur
+- x : INT Position en x du joueur
+- y : INT Position en y du joueur
+- speed : INT vitesse du joueur
+- dx : INT vitesse en x
+- dy : INT vitesse en y
+-------------------------------------------------------------------------------------------------- */
+
+var Player = function(id, name, x, y, speed, dx, dy, angle){
     this.id = id;
-    this.name = name;
-    this.x = x;
-    this.y = y;
-    this.speed = speed;
+    this.name = name; 
+    this.x = x; 
+    this.y = y; 
+    this.speed = speed; 
     this.dx = dx;
-    this.dy = dy;
+    this.dy = dy; 
+    this.angle = angle;
+
+    /* ===============================================================================================
+    Procédure : Affichage du Player
+    Input - VOID
+    Output - VOID
+    -------------------------------------------------------------------------------------------------- */
     this.draw = function(){
 
-        this.x += this.dx;
-        this.y += this.dy;
+        //this.x += this.dx;
+        //this.y += this.dy;
 
         fill(200,50,50)
         beginShape();
@@ -35,6 +64,12 @@ var Player = function(id, name, x, y, speed, dx, dy){
         endShape(CLOSE);
 
     }
+
+    /* ===============================================================================================
+    Fonction : Renvoie les infos du Player (pour pouvoir les envoyer en socket)
+    Input - VOID
+    Output - ID, x, y , speed, dx, dy
+    -------------------------------------------------------------------------------------------------- */
     this.getinfo = function(){
         return{
             id : this.id,
@@ -42,11 +77,19 @@ var Player = function(id, name, x, y, speed, dx, dy){
             y : this.y,
             speed : this.speed,
             dx : this.dx,
-            dy : this.dy
+            dy : this.dy,
+            angle : this.angle
         }
     }
     return false;
 }
+
+/* ===============================================================================================
+Procédure : Affichage de la liste des joueurs
+Input - players : Array of Player
+Output - VOID
+-------------------------------------------------------------------------------------------------- */
+
 function seePlayers(players){
     console.log("-----------------------------------------------------------");
     for (var i in players){
@@ -55,50 +98,66 @@ function seePlayers(players){
     console.log("-----------------------------------------------------------");
 }
 
-function update(){
+
+/* ===============================================================================================
+Procédure : Boucle pricipale d'update, envoie un ping régulièrements pour récupérer des données clients
+Input - VOID
+Output - VOID
+-------------------------------------------------------------------------------------------------- */
+
+function update(i){
     setTimeout(() => {
 
-        io.local.emit("Ping", true);
-        //console.log("Ping n°" + i);
-        //seePlayers(players);
+        io.local.emit("Ping", true); // Envoie de ping
+        seePlayers(players);
 
         update(i++);
     }, 150)
 }
 
+//==========================================================================================
+//==========================================================================================
+//                               Algorithme principale
 //------------------------------------------------------------------------------------------
-// Run part
 //------------------------------------------------------------------------------------------
+
 var players = [];
 var i = 1;
-// run the server on port
+
+// Run the server on port
 server.listen(port, function(){
     console.log("Server started successfully on port " + port);
     update(i);
     
 });
 
-// the client information will be stored in the socket parameter
-io.on('connection', function(socket){
+// The client information will be stored in the socket parameter
+
+io.on('connection', function(socket){ // Callback si connexion d'un nouveau client
+
     console.log("Someone's connected, id : " + socket.id);
 
-    socket.on("ImReady", function(data){
+    socket.on("ImReady", function(data){ // Callback si le nouveau client soit prêt
 
+        // Emet les données de joueurs au nouveau client
         for(var i in players){
-            socket.emit("CurrentElements", players[i].getinfo());
+            socket.emit("CurrentElements", players[i].getinfo()); 
         }
 
-        player = new Player(socket.id, data.name, 0, 0, 6, 0, 0);
+        // Création d'un nouveau joueur
+        player = new Player(socket.id, data.name, 0, 0, 6, 0, 0, 0);
         players.push(player);
 
+        // Emission de l'ID au nouveau client
         socket.emit("YourId", {id : player.id});
 
         io.emit("NewPlayer", player.getinfo());
 
-        socket.on("disconnect", () => {
+        socket.on("disconnect", () => { // Callback si le client se déconnecte
             console.log(socket.id + " is disconnected.");
             var indexID;
-        
+            
+            // Recherche de l'index du joueurs qui se déconnecte dans players
             for (var i in players){
                 if (players[i].id === socket.id){
                     indexID = i;
@@ -110,10 +169,10 @@ io.on('connection', function(socket){
             if (players.length === 1){players = []}
             else {players.splice(indexID, 1)}
 
-            io.emit("DeleteThisId", socket.id);
+            io.emit("DeleteThisId", socket.id); // Envoie de l'ID à delete à tout les joueurs
         });
 
-        socket.on("MyPosition", function(data){
+        socket.on("MyPosition", function(data){ // Callback si la position est réçu
             for (var i in players){
                 if (players[i].id === socket.id){
                     players[i].x = data.x;
@@ -121,9 +180,10 @@ io.on('connection', function(socket){
                     players[i].speed = data.speed;
                     players[i].dx = data.dx;
                     players[i].dy = data.dy;
+                    players[i].angle = data.angle;
 
                     //console.log("Data de " + players[i].id);
-                    io.local.emit("Update", players[i].getinfo());
+                    io.local.emit("Update", players[i].getinfo()); // Emission de l'update
                 }
             }
             
