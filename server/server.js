@@ -35,7 +35,7 @@ Input :
 - dy : INT vitesse en y
 -------------------------------------------------------------------------------------------------- */
 
-var Player = function(id, name, x, y, speed, dx, dy, angle){
+var Entity = function(id, name, x, y, speed, dx, dy, angle){
     this.id = id;
     this.name = name; 
     this.x = x; 
@@ -93,11 +93,17 @@ Output - VOID
 function seePlayers(players){
     console.log("-----------------------------------------------------------");
     for (var i in players){
-        console.log ("ID:" + players[i].id + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y)
+        console.log ("ID:" + players[i].id + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y);
     }
     console.log("-----------------------------------------------------------");
 }
 
+function destroyProj(i){
+    setTimeout(() => {
+        projectiles.splice(i, 1);
+        io.emit("MissileDestruction", {i : i});
+    }, 3000)
+}
 
 /* ===============================================================================================
 Procédure : Boucle pricipale d'update, envoie un ping régulièrements pour récupérer des données clients
@@ -109,7 +115,7 @@ function update(i){
     setTimeout(() => {
 
         io.local.emit("Ping", true); // Envoie de ping
-        seePlayers(players);
+        //seePlayers(players);
 
         update(i++);
     }, 150)
@@ -122,6 +128,7 @@ function update(i){
 //------------------------------------------------------------------------------------------
 
 var players = [];
+var projectiles = [];
 var i = 1;
 
 // Run the server on port
@@ -145,7 +152,7 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
         }
 
         // Création d'un nouveau joueur
-        player = new Player(socket.id, data.name, 0, 0, 6, 0, 0, 0);
+        player = new Entity(socket.id, data.name, 0, 0, 6, 0, 0, 0);
         players.push(player);
 
         // Emission de l'ID au nouveau client
@@ -171,6 +178,14 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
 
             io.emit("DeleteThisId", socket.id); // Envoie de l'ID à delete à tout les joueurs
         });
+
+        socket.on("Missile", function(data){
+            proj = new Entity(socket.id, "Missile", data.x, data.y, 12, Math.cos(data.angle)* 12, Math.sin(data.angle)* 12, data.angle);
+            projectiles.push(proj);
+
+            io.emit("Missile",proj.getinfo())
+            destroyProj(projectiles.lenght - 1);
+        })
 
         socket.on("MyPosition", function(data){ // Callback si la position est réçu
             for (var i in players){

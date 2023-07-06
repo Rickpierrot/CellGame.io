@@ -16,7 +16,7 @@ Input :
 - dy : INT vitesse en y
 -------------------------------------------------------------------------------------------------- */
 
-var Player = function(id, name, x, y, speed, dx, dy, angle){
+var Entity = function(id, name, x, y, speed, dx, dy, angle){
     this.id = id;
     this.name = name; 
     this.x = x; 
@@ -35,18 +35,25 @@ var Player = function(id, name, x, y, speed, dx, dy, angle){
         
         push();
         translate(this.x, this.y);
-        fill(200,50,50)
-        
-        textSize(13);
-        text(this.id, -70, 80);
+        fill(200,50,50);
 
         rotate(this.angle);
-        beginShape();
-        vertex(0, -45);
-        vertex(-30, 45);
-        vertex(0, 37);
-        vertex(30, 45);
-        endShape(CLOSE);
+        if (this.name === "Missile"){
+            rect(0, 0, 5, 10);
+            this.x += this.dx;
+            this.y += this.dy;
+        }
+        else{
+
+            textSize(13);
+            text(this.id, -70, 80);
+            beginShape();
+            vertex(0, -45);
+            vertex(-30, 45);
+            vertex(0, 37);
+            vertex(30, 45);
+            endShape(CLOSE);
+        }
         pop();
 
     }
@@ -115,7 +122,11 @@ function speedY(speed){
     return speed * Math.sin(angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2));
 }
 
-
+function destroyProj(i){
+    setTimeout(() => {
+        projectiles.splice(i, 1);
+    }, 3000)
+}
 
 /* ================================================================================================
 ===================================================================================================
@@ -126,6 +137,7 @@ var socket;
 var myId;
 var player;
 var players = [];
+var projectiles = [];
 
 socket = io();
 
@@ -149,7 +161,7 @@ function setup() {
         //console.log(myId);
     })
     socket.on("CurrentElements", function(data){
-        player = new Player(data.id, "Name", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+        player = new Entity(data.id, "Name", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
         players.push(player);
     
         console.log("Other players created");
@@ -157,7 +169,7 @@ function setup() {
 
     socket.on("NewPlayer", function(data){
   
-        player = new Player(data.id, "Name", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+        player = new Entity(data.id, "Name", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
         if (player.id === myId){
             players.unshift(player);
         }
@@ -176,7 +188,7 @@ function setup() {
             socket.on("Update", function(data){
                 
                 for (var i in players){
-                    seePlayers(players);
+                    //seePlayers(players);
                     if(players[i].id === data.id && myId !== data.id){
                         players[i].x = data.x;
                         players[i].y = data.y;
@@ -190,6 +202,15 @@ function setup() {
             })
         })
     });
+    socket.on("Missile", function(data){
+        proj = new Entity(socket.id, "Missile", data.x, data.y, 12, Math.cos(data.angle - Math.PI/2)* 12, Math.sin(data.angle - Math.PI/2)* 12, data.angle);
+        projectiles.push(proj);
+
+        socket.on("MissileDestruction", function(data){
+            projectiles.splice(data.i, 1);
+        })
+    })
+
     socket.on("DeleteThisId", function(data){
         var indexID;
         for (var i in players){
@@ -233,4 +254,14 @@ function draw() {
     for(var i in players){
         players[i].draw();
     }
+
+    for(var i in projectiles){
+        projectiles[i].draw();
+    }
+}
+
+function keyPressed(){
+    if (keyCode === LEFT_ARROW) {
+        socket.emit("Missile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
+      }
 }
