@@ -143,6 +143,8 @@ var player;
 var players = [];
 var projectiles = [];
 
+let imgPlayer;
+
 socket = io();
 
 /* ===============================================================================================
@@ -152,12 +154,11 @@ Output -
 -------------------------------------------------------------------------------------------------- */
 
 function preload() {
-    // write code
+    imgPlayer = loadImage("./assets/spaceship.png");
 }
 function setup() {
     // write code
     createCanvas(windowWidth, windowHeight);
-
 
     socket.emit("ImReady", {name : "name"});
     socket.on("YourId", function(data){
@@ -235,14 +236,15 @@ Output -
 -------------------------------------------------------------------------------------------------- */
 
 function draw() {
-    // Drawing
-    frameRate(60);
+
+    // Setup
+    frameRate(50);
     background(0,204,204);
-    
+
+    // Player Control
     if(players[0]){
-        translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
         
-        players[0].angle = angle(pmouseX-windowWidth/2, pmouseY-height/2) + (Math.PI / 2);
+        players[0].angle = angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2) + (Math.PI / 2);
 
         players[0].dx = speedX(players[0].speed);
         players[0].dy = speedY(players[0].speed);
@@ -250,24 +252,43 @@ function draw() {
         players[0].x += players[0].dx;
         players[0].y += players[0].dy;
 
+        translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
+
     }
-    
+
+    // Background
     fill(51);
     rect(-300, 150, 800, 600);
+    rect(600, 150, 800, 600);
+    rect(-1200, 150, 800, 600);
+    rect(-300, 850, 800, 600);
+    rect(-300, -550, 800, 600);
+
+    
+    // Entity Drawing
+    for(var i in projectiles){
+        projectiles[i].draw();
+    }
 
     for(var i in players){
         players[i].draw();
     }
 
-    for(var i in projectiles){
-        projectiles[i].draw();
-    }
+    // HUD
+    fill(255,255,255);
+    if (players[0]){
+        textSize(30);
+        text("Your score : ", (-windowWidth/2) + 20 + players[0].x, (windowHeight/2) - 50 + players[0].y );
 
-    seePlayers(projectiles);
+        textSize(25);
+        text("Press SHIFT to shoot ! ", (-windowWidth/2) + 20 + players[0].x, (-windowHeight/2) + 35 + players[0].y );
+    }
+    tint(255, 126);
+    image(imgPlayer, 0, 0);
 }
 
 function keyPressed(){
-    if (keyCode === LEFT_ARROW) {
+    if (keyCode === SHIFT) {
         socket.emit("InputMissile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
       }
 }
