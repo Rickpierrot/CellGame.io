@@ -93,15 +93,20 @@ Output - VOID
 function seePlayers(players){
     console.log("-----------------------------------------------------------");
     for (var i in players){
-        console.log ("ID:" + players[i].id + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y);
+        console.log ("ID:" + players[i].id + " Name:" + players[i].name + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y);
     }
     console.log("-----------------------------------------------------------");
 }
 
-function destroyProj(i){
+function destroyProj(name){
     setTimeout(() => {
-        projectiles.splice(i, 1);
-        io.emit("MissileDestruction", {i : i});
+        var projectilesClone = projectiles;
+        for (var i in projectilesClone){
+            if (projectilesClone[i].name === name){
+                projectiles.splice(i, 1);
+                io.emit("MissileDestruction", {i : i});
+            }
+        }
     }, 3000)
 }
 
@@ -115,6 +120,7 @@ function update(i){
     setTimeout(() => {
 
         io.local.emit("Ping", true); // Envoie de ping
+        //seePlayers(projectiles);
         //seePlayers(players);
 
         update(i++);
@@ -129,6 +135,7 @@ function update(i){
 
 var players = [];
 var projectiles = [];
+var projnames = 0;
 var i = 1;
 
 // Run the server on port
@@ -179,12 +186,16 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
             io.emit("DeleteThisId", socket.id); // Envoie de l'ID à delete à tout les joueurs
         });
 
-        socket.on("Missile", function(data){
-            proj = new Entity(socket.id, "Missile", data.x, data.y, 12, Math.cos(data.angle)* 12, Math.sin(data.angle)* 12, data.angle);
+        socket.on("InputMissile", function(data){
+            projnames += 1;
+
+            var missilename = projnames.toString();
+
+            proj = new Entity(socket.id, missilename, data.x, data.y, 12, Math.cos(data.angle)* 12, Math.sin(data.angle)* 12, data.angle);
             projectiles.push(proj);
 
-            io.emit("Missile",proj.getinfo())
-            destroyProj(projectiles.lenght - 1);
+            io.emit("NewMissile",proj.getinfo());
+            destroyProj(missilename);
         })
 
         socket.on("MyPosition", function(data){ // Callback si la position est réçu

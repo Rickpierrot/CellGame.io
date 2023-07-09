@@ -37,8 +37,12 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
         translate(this.x, this.y);
         fill(200,50,50);
 
-        rotate(this.angle);
         if (this.name === "Missile"){
+
+            textSize(13);
+            text(this.name, -70, 80);
+            rectMode(CENTER);
+            rotate(this.angle);
             rect(0, 0, 5, 10);
             this.x += this.dx;
             this.y += this.dy;
@@ -47,6 +51,8 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
 
             textSize(13);
             text(this.id, -70, 80);
+            rotate(this.angle);
+
             beginShape();
             vertex(0, -45);
             vertex(-30, 45);
@@ -81,7 +87,7 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
 function seePlayers(players){
     console.log("-----------------------------------------------------------");
     for (var i in players){
-        console.log ("ID:" + players[i].id + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y + " angle:" + players[i].angle);
+        console.log ("ID:" + players[i].id + " Name:" + players[i].name + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y);
     }
     console.log("-----------------------------------------------------------");
 }
@@ -202,13 +208,13 @@ function setup() {
             })
         })
     });
-    socket.on("Missile", function(data){
+    socket.on("NewMissile", function(data){
         proj = new Entity(socket.id, "Missile", data.x, data.y, 12, Math.cos(data.angle - Math.PI/2)* 12, Math.sin(data.angle - Math.PI/2)* 12, data.angle);
         projectiles.push(proj);
+    })
 
-        socket.on("MissileDestruction", function(data){
-            projectiles.splice(data.i, 1);
-        })
+    socket.on("MissileDestruction", function(data){
+        projectiles.splice(data.i, 1);
     })
 
     socket.on("DeleteThisId", function(data){
@@ -237,7 +243,7 @@ function draw() {
     
     if(players[0]){
         translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
-
+        
         players[0].angle = angle(pmouseX-windowWidth/2, pmouseY-height/2) + (Math.PI / 2);
 
         players[0].dx = speedX(players[0].speed);
@@ -258,10 +264,12 @@ function draw() {
     for(var i in projectiles){
         projectiles[i].draw();
     }
+
+    //seePlayers(projectiles);
 }
 
 function keyPressed(){
     if (keyCode === LEFT_ARROW) {
-        socket.emit("Missile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
+        socket.emit("InputMissile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
       }
 }
