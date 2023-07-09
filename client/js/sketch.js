@@ -38,7 +38,7 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
         fill(200,50,50);
 
         if (this.name === "Missile"){
-            
+
             rectMode(CENTER);
             rotate(this.angle);
             rect(0, 0, 5, 10);
@@ -263,7 +263,7 @@ function draw() {
         projectiles[i].draw();
     }
 
-    //seePlayers(projectiles);
+    seePlayers(projectiles);
 }
 
 function keyPressed(){
