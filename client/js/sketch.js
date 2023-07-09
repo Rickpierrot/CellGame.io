@@ -38,9 +38,7 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
         fill(200,50,50);
 
         if (this.name === "Missile"){
-
-            textSize(13);
-            text(this.name, -70, 80);
+            
             rectMode(CENTER);
             rotate(this.angle);
             rect(0, 0, 5, 10);
