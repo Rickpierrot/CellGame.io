@@ -39,24 +39,21 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
 
         if (this.name === "Missile"){
 
-            rectMode(CENTER);
             rotate(this.angle);
-            rect(0, 0, 5, 10);
+            imageMode(CENTER);
+            image(imgMissile, 0, 0, 40, 40);
             this.x += this.dx;
             this.y += this.dy;
         }
         else{
 
-            textSize(13);
-            text(this.id, -70, 80);
+            textSize(18);
+            textAlign(CENTER);
+            text(this.name, 0, -80);
             rotate(this.angle);
 
-            beginShape();
-            vertex(0, -45);
-            vertex(-30, 45);
-            vertex(0, 37);
-            vertex(30, 45);
-            endShape(CLOSE);
+            imageMode(CENTER);
+            image(imgPlayer, 0, 0, 200, 200);
         }
         pop();
 
@@ -70,6 +67,7 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
     this.getinfo = function(){
         return{
             id : this.id,
+            name : this.name,
             x : this.x,
             y : this.y,
             speed : this.speed,
@@ -89,6 +87,29 @@ function seePlayers(players){
     }
     console.log("-----------------------------------------------------------");
 }
+
+function chooseName(){
+    fill(255);
+
+    textSize(25);
+    text("Hey pilot, what's your name ?", windowWidth/2 - 100, windowHeight/2 - 20);
+
+    let inp = createInput('');
+    inp.position(windowWidth/2, windowHeight/2);
+    inp.size(100);
+    inp.input(myInputEvent);
+
+    button = createButton("Let's kick some asses !");
+    button.position(windowWidth/2 - 18, windowHeight/2 +30);
+    button.mousePressed(function(){
+        myName = inp.value();
+        console.log("My Name : " + myName.toString());
+        socket.emit("ImReady", {name : myName.toString()});
+        inp.remove();
+        button.remove();
+    });
+}
+
 
 /* ===============================================================================================
 Procédure :
@@ -139,11 +160,15 @@ function destroyProj(i){
 --------------------------------------------------------------------------------------------------*/
 var socket;
 var myId;
+let myName = "";
+
 var player;
 var players = [];
 var projectiles = [];
 
+let imgBg;
 let imgPlayer;
+let imgMissile;
 
 socket = io();
 
@@ -155,18 +180,23 @@ Output -
 
 function preload() {
     imgPlayer = loadImage("./assets/spaceship.png");
+    imgMissile = loadImage("./assets/missile.png");
+    imgBg = loadImage("./assets/spacebg.jpeg");
+
 }
 function setup() {
     // write code
     createCanvas(windowWidth, windowHeight);
+    background(imgBg);
 
-    socket.emit("ImReady", {name : "name"});
+    chooseName();
+
     socket.on("YourId", function(data){
         myId = data.id;
         //console.log(myId);
     })
     socket.on("CurrentElements", function(data){
-        player = new Entity(data.id, "Name", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+        player = new Entity(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
         players.push(player);
     
         console.log("Other players created");
@@ -174,7 +204,8 @@ function setup() {
 
     socket.on("NewPlayer", function(data){
   
-        player = new Entity(data.id, "Name", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+        player = new Entity(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+        console.log("Name2 : " + player.name);
         if (player.id === myId){
             players.unshift(player);
         }
@@ -208,7 +239,7 @@ function setup() {
         })
     });
     socket.on("NewMissile", function(data){
-        proj = new Entity(socket.id, "Missile", data.x, data.y, 12, Math.cos(data.angle - Math.PI/2)* 12, Math.sin(data.angle - Math.PI/2)* 12, data.angle);
+        proj = new Entity(socket.id, "Missile", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
         projectiles.push(proj);
     })
 
@@ -237,54 +268,60 @@ Output -
 
 function draw() {
 
+
     // Setup
     frameRate(50);
-    background(0,204,204);
 
-    // Player Control
-    if(players[0]){
+    // Choose name window
+    if (myName === ""){
+    }
+
+    else{
+        background(imgBg);
+
+        // Player Control
+        if(players[0]){
+            
+            players[0].angle = angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2);
+
+            players[0].dx = speedX(players[0].speed);
+            players[0].dy = speedY(players[0].speed);
+
+            players[0].x += players[0].dx;
+            players[0].y += players[0].dy;
+
+            translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
+
+        }
+
+        // Background
+        fill(90, 90, 90);
+        rect(-300, 150, 800, 600);
+        rect(600, 150, 800, 600);
+        rect(-1200, 150, 800, 600);
+        rect(-300, 850, 800, 600);
+        rect(-300, -550, 800, 600);
+
         
-        players[0].angle = angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2) + (Math.PI / 2);
+        // Entity Drawing
+        for(var i in projectiles){
+            projectiles[i].draw();
+        }
 
-        players[0].dx = speedX(players[0].speed);
-        players[0].dy = speedY(players[0].speed);
+        for(var i in players){
+            players[i].draw();
+        }
 
-        players[0].x += players[0].dx;
-        players[0].y += players[0].dy;
+        // HUD
+        fill(255,255,255);
+        if (players[0]){
+            textSize(30);
+            text("Your score : ", (-windowWidth/2) + 20 + players[0].x, (windowHeight/2) - 50 + players[0].y );
 
-        translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
-
+            textSize(25);
+            text("Press SHIFT to shoot ! ", (-windowWidth/2) + 20 + players[0].x, (-windowHeight/2) + 35 + players[0].y );
+        }
     }
-
-    // Background
-    fill(51);
-    rect(-300, 150, 800, 600);
-    rect(600, 150, 800, 600);
-    rect(-1200, 150, 800, 600);
-    rect(-300, 850, 800, 600);
-    rect(-300, -550, 800, 600);
-
-    
-    // Entity Drawing
-    for(var i in projectiles){
-        projectiles[i].draw();
-    }
-
-    for(var i in players){
-        players[i].draw();
-    }
-
-    // HUD
-    fill(255,255,255);
-    if (players[0]){
-        textSize(30);
-        text("Your score : ", (-windowWidth/2) + 20 + players[0].x, (windowHeight/2) - 50 + players[0].y );
-
-        textSize(25);
-        text("Press SHIFT to shoot ! ", (-windowWidth/2) + 20 + players[0].x, (-windowHeight/2) + 35 + players[0].y );
-    }
-    tint(255, 126);
-    image(imgPlayer, 0, 0);
 }
 
 function keyPressed(){

@@ -73,6 +73,7 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
     this.getinfo = function(){
         return{
             id : this.id,
+            name : this.name,
             x : this.x,
             y : this.y,
             speed : this.speed,
@@ -159,7 +160,7 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
         }
 
         // Création d'un nouveau joueur
-        player = new Entity(socket.id, data.name, 0, 0, 6, 0, 0, 0);
+        player = new Entity(socket.id, data.name, 0, 0, 8, 0, 0, 0);
         players.push(player);
 
         // Emission de l'ID au nouveau client
@@ -190,8 +191,9 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
             projnames += 1;
 
             var missilename = projnames.toString();
+            var speedMissile = 17;
 
-            proj = new Entity(socket.id, missilename, data.x, data.y, 12, Math.cos(data.angle)* 12, Math.sin(data.angle)* 12, data.angle);
+            proj = new Entity(socket.id, missilename, data.x, data.y, speedMissile, Math.cos(data.angle)* speedMissile, Math.sin(data.angle)* speedMissile, data.angle);
             projectiles.push(proj);
 
             io.emit("NewMissile",proj.getinfo());
