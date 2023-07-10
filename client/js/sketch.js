@@ -114,7 +114,7 @@ var Entity = function(coordinate, statut){
         }
         else{
 
-            textSize(18);
+            textSize(18/zoom);
             textAlign(CENTER);
             text(this.name, 0, -80);
             rotate(this.angle);
@@ -171,6 +171,16 @@ function seePlayers(players){
     }
     console.log("-----------------------------------------------------------");
 }
+
+function mouseWheel(event) {
+    //move the square according to the vertical scroll amount
+    zoom += event.delta * 0.005;
+    if (zoom >= 1.3 || zoom <= 0.2){
+        zoom -= event.delta * 0.005;
+    }
+    //uncomment to block page scrolling
+    //return false;
+  }
 
 function chooseName(){
     fill(255);
@@ -231,10 +241,10 @@ Output -
 -------------------------------------------------------------------------------------------------- */
 
 function speedX(speed){
-    if( pmouseX < windowWidth/2 + 100 && pmouseX > windowWidth/2 - 100 ){
-        return (speed * Math.cos(angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2)) * (Math.abs(pmouseX - windowWidth/2)/100));
+    if( pmouseX < windowWidth/(2) + 100 && pmouseX > windowWidth/(2) - 100 ){
+        return (speed * Math.cos(angle(pmouseX-windowWidth/(2), pmouseY-windowHeight/(2))) * (Math.abs(pmouseX - windowWidth/(2))/100));
     }
-    return speed * Math.cos(angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2));
+    return speed * Math.cos(angle(pmouseX-windowWidth/(2), pmouseY-windowHeight/(2)));
 }
 
 /* ===============================================================================================
@@ -244,10 +254,10 @@ Output -
 -------------------------------------------------------------------------------------------------- */
 
 function speedY(speed){
-    if( pmouseY < windowHeight/2 + 100 && pmouseY > windowHeight/2 - 100 ){
-        return (speed * Math.sin(angle(pmouseX-windowWidth/2, pmouseY-height/2)) *(Math.abs(pmouseY - windowHeight/2)/100));
+    if( pmouseY < windowHeight/(2) + 100 && pmouseY > windowHeight/(2) - 100 ){
+        return (speed * Math.sin(angle(pmouseX-windowWidth/(2), pmouseY-height/(2))) *(Math.abs(pmouseY - windowHeight/(2))/100));
     }
-    return speed * Math.sin(angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2));
+    return speed * Math.sin(angle(pmouseX-windowWidth/(2), pmouseY-windowHeight/(2)));
 }
 
 function destroyProj(i){
@@ -295,6 +305,8 @@ let imgBg;
 let imgPlayer;
 let imgMissile;
 let imgExplosion;
+
+let zoom = 1;
 
 socket = io();
 
@@ -395,16 +407,13 @@ Output -
 -------------------------------------------------------------------------------------------------- */
 
 function draw() {
-
-
     // Choose name window
     if (myName !== ""){
-
-
+        scale(zoom);
         // Player Control
         if(players[0]){
             
-            players[0].angle = angle(pmouseX-windowWidth/2, pmouseY-windowHeight/2);
+            players[0].angle = angle(pmouseX-windowWidth/(2), pmouseY-windowHeight/(2));
 
             players[0].dx = speedX(players[0].speed);
             players[0].dy = speedY(players[0].speed);
@@ -412,7 +421,7 @@ function draw() {
             players[0].x += players[0].dx;
             players[0].y += players[0].dy;
 
-            translate(windowWidth/2 - players[0].x ,windowHeight/2 - players[0].y);
+            translate(windowWidth/(2*zoom) - players[0].x ,windowHeight/(2*zoom) - players[0].y);
 
         }
 
@@ -444,11 +453,11 @@ function draw() {
         // HUD
         fill(255,255,255);
         if (players[0]){
-            textSize(30);
-            text("Your score : " + players[0].energy, (-windowWidth/2) + 20 + players[0].x, (windowHeight/2) - 50 + players[0].y );
+            textSize(30/zoom);
+            text("Your score : " + players[0].energy, (-windowWidth/(2*zoom)) + 20/zoom + players[0].x, (windowHeight/(2*zoom)) - 50/zoom + players[0].y );
 
-            textSize(25);
-            text("Press SHIFT to shoot ! ", (-windowWidth/2) + 20 + players[0].x, (-windowHeight/2) + 35 + players[0].y );
+            textSize(25/zoom);
+            text("Press SHIFT to shoot ! ", (-windowWidth/(2*zoom)) + 20/zoom + players[0].x, (-windowHeight/(2*zoom)) + 35/zoom + players[0].y );
         }
     }
 }

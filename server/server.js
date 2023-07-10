@@ -280,7 +280,7 @@ function update(){
 
 var players = [];
 var projectiles = [];
-let missileSpeed = 17;
+let missileSpeed = 22;
 
 var projnames = 0;
 
@@ -309,7 +309,7 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
             name : data.name,
             x : 0,
             y : 0,
-            speed : 8,
+            speed : 13,
             dx : 0,
             dy : 0,
             angle : 0,
