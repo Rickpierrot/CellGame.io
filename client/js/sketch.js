@@ -110,7 +110,6 @@ function chooseName(){
     });
 }
 
-
 /* ===============================================================================================
 Procédure :
 Input - 
@@ -151,6 +150,16 @@ function destroyProj(i){
     setTimeout(() => {
         projectiles.splice(i, 1);
     }, 3000)
+}
+
+function keyPressed(){
+    if (keyCode === SHIFT) {
+        socket.emit("InputMissile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
+      }
+}
+
+function myInputEvent() {
+    console.log('you are typing: ', this.value());
 }
 
 /* ================================================================================================
@@ -322,10 +331,4 @@ function draw() {
             text("Press SHIFT to shoot ! ", (-windowWidth/2) + 20 + players[0].x, (-windowHeight/2) + 35 + players[0].y );
         }
     }
-}
-
-function keyPressed(){
-    if (keyCode === SHIFT) {
-        socket.emit("InputMissile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
-      }
 }
