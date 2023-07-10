@@ -35,7 +35,28 @@ Input :
 - dy : INT vitesse en y
 -------------------------------------------------------------------------------------------------- */
 
-var Entity = function(id, name, x, y, speed, dx, dy, angle){
+var Statut = function(type, health, energy){
+
+    this.type = type;
+    this.health = health;
+    this.energy = energy;
+
+    return false;
+}
+
+/* ===============================================================================================
+Objet : Player caractèrise toute les données d'un joueur
+Input : 
+- id : INT id du joueur
+- name : STRING Nom du joueur
+- x : INT Position en x du joueur
+- y : INT Position en y du joueur
+- speed : INT vitesse du joueur
+- dx : INT vitesse en x
+- dy : INT vitesse en y
+-------------------------------------------------------------------------------------------------- */
+
+var Coordinates = function(id, name, x, y, speed, dx, dy, angle){
     this.id = id;
     this.name = name; 
     this.x = x; 
@@ -44,6 +65,36 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
     this.dx = dx;
     this.dy = dy; 
     this.angle = angle;
+    
+    return false;
+}
+
+
+/* ===============================================================================================
+Objet : Player caractèrise toute les données d'un joueur
+Input : 
+- id : INT id du joueur
+- name : STRING Nom du joueur
+- x : INT Position en x du joueur
+- y : INT Position en y du joueur
+- speed : INT vitesse du joueur
+- dx : INT vitesse en x
+- dy : INT vitesse en y
+-------------------------------------------------------------------------------------------------- */
+
+var Entity = function(coordinate, statut){
+    this.id = coordinate.id;
+    this.name = coordinate.name; 
+    this.x = coordinate.x; 
+    this.y = coordinate.y; 
+    this.speed = coordinate.speed; 
+    this.dx = coordinate.dx;
+    this.dy = coordinate.dy; 
+    this.angle = coordinate.angle;
+
+    this.type = statut.type;
+    this.health = statut.health;
+    this.energy = statut.energy;
 
     /* ===============================================================================================
     Procédure : Affichage du Player
@@ -51,17 +102,30 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
     Output - VOID
     -------------------------------------------------------------------------------------------------- */
     this.draw = function(){
+        
+        push();
+        translate(this.x, this.y);
+        fill(200,50,50);
 
-        //this.x += this.dx;
-        //this.y += this.dy;
+        if (this.type === "projectile"){
 
-        fill(200,50,50)
-        beginShape();
-        vertex(this.x, this.y - 45);
-        vertex( this.x - 30, this.y + 45);
-        vertex(this.x, this.y + 37);
-        vertex(this.x + 30, this.y + 45);
-        endShape(CLOSE);
+            rotate(this.angle);
+            imageMode(CENTER);
+            image(imgMissile, 0, 0, 40, 40);
+            this.x += this.dx;
+            this.y += this.dy;
+        }
+        else{
+
+            textSize(18);
+            textAlign(CENTER);
+            text(this.name, 0, -80);
+            rotate(this.angle);
+
+            imageMode(CENTER);
+            image(imgPlayer, 0, 0, 200, 200);
+        }
+        pop();
 
     }
 
@@ -79,7 +143,11 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
             speed : this.speed,
             dx : this.dx,
             dy : this.dy,
-            angle : this.angle
+            angle : this.angle,
+
+            type : this.type,
+            health : this.health,
+            energy : this.energy
         }
     }
     return false;
@@ -97,6 +165,21 @@ function seePlayers(players){
         console.log ("ID:" + players[i].id + " Name:" + players[i].name + " Index:" + i + " x:" + players[i].x + " y:" + players[i].y);
     }
     console.log("-----------------------------------------------------------");
+}
+
+function newEntity(data, list){
+    let coord = new Coordinates(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+    let statut = new Statut(data.type, data.health, data.energy);
+
+    let entity = new Entity(coord, statut);
+
+    if(list === "players"){
+        players.push(entity);
+        console.log("Player created at x:" + entity.x, " and y: " + entity.y);
+    }
+    if(list === "projectiles"){
+        projectiles.push(entity);
+    }
 }
 
 function destroyProj(name){
@@ -136,6 +219,8 @@ function update(i){
 
 var players = [];
 var projectiles = [];
+let missileSpeed = 17;
+
 var projnames = 0;
 var i = 1;
 
@@ -160,13 +245,27 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
         }
 
         // Création d'un nouveau joueur
-        player = new Entity(socket.id, data.name, 0, 0, 8, 0, 0, 0);
-        players.push(player);
+        let newData = {
+            id : socket.id,
+            name : data.name,
+            x : 0,
+            y : 0,
+            speed : 8,
+            dx : 0,
+            dy : 0,
+            angle : 0,
+
+            type : "player",
+            health : 20,
+            energy : 10
+        }
+
+        newEntity(newData, "players");
 
         // Emission de l'ID au nouveau client
-        socket.emit("YourId", {id : player.id});
+        socket.emit("YourId", {id : newData.id});
 
-        io.emit("NewPlayer", player.getinfo());
+        io.emit("NewPlayer", newData);
 
         socket.on("disconnect", () => { // Callback si le client se déconnecte
             console.log(socket.id + " is disconnected.");
@@ -189,15 +288,27 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
 
         socket.on("InputMissile", function(data){
             projnames += 1;
+            
 
-            var missilename = projnames.toString();
-            var speedMissile = 17;
+            let newData = {
+                id : socket.id,
+                name : projnames.toString(),
+                x : data.x,
+                y : data.y,
+                speed : missileSpeed,
+                dx : Math.cos(data.angle)* missileSpeed,
+                dy : Math.sin(data.angle)* missileSpeed,
+                angle : data.angle,
+                
+                type : "projectile",
+                health : 0,
+                energy : 0
+            }
 
-            proj = new Entity(socket.id, missilename, data.x, data.y, speedMissile, Math.cos(data.angle)* speedMissile, Math.sin(data.angle)* speedMissile, data.angle);
-            projectiles.push(proj);
+            newEntity(newData, "projectiles")
 
-            io.emit("NewMissile",proj.getinfo());
-            destroyProj(missilename);
+            io.emit("NewMissile",newData);
+            destroyProj(newData.name);
         })
 
         socket.on("MyPosition", function(data){ // Callback si la position est réçu
@@ -209,6 +320,11 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
                     players[i].dx = data.dx;
                     players[i].dy = data.dy;
                     players[i].angle = data.angle;
+
+                    players[i].type = data.type;
+                    players[i].health = data.health;
+                    players[i].energy = data.energy;
+                    
 
                     //console.log("Data de " + players[i].id);
                     io.local.emit("Update", players[i].getinfo()); // Emission de l'update

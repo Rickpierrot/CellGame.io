@@ -16,7 +16,28 @@ Input :
 - dy : INT vitesse en y
 -------------------------------------------------------------------------------------------------- */
 
-var Entity = function(id, name, x, y, speed, dx, dy, angle){
+var Statut = function(type, health, energy){
+
+    this.type = type;
+    this.health = health;
+    this.energy = energy;
+
+    return false;
+}
+
+/* ===============================================================================================
+Objet : Player caractèrise toute les données d'un joueur
+Input : 
+- id : INT id du joueur
+- name : STRING Nom du joueur
+- x : INT Position en x du joueur
+- y : INT Position en y du joueur
+- speed : INT vitesse du joueur
+- dx : INT vitesse en x
+- dy : INT vitesse en y
+-------------------------------------------------------------------------------------------------- */
+
+var Coordinates = function(id, name, x, y, speed, dx, dy, angle){
     this.id = id;
     this.name = name; 
     this.x = x; 
@@ -25,6 +46,36 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
     this.dx = dx;
     this.dy = dy; 
     this.angle = angle;
+    
+    return false;
+}
+
+
+/* ===============================================================================================
+Objet : Player caractèrise toute les données d'un joueur
+Input : 
+- id : INT id du joueur
+- name : STRING Nom du joueur
+- x : INT Position en x du joueur
+- y : INT Position en y du joueur
+- speed : INT vitesse du joueur
+- dx : INT vitesse en x
+- dy : INT vitesse en y
+-------------------------------------------------------------------------------------------------- */
+
+var Entity = function(coordinate, statut){
+    this.id = coordinate.id;
+    this.name = coordinate.name; 
+    this.x = coordinate.x; 
+    this.y = coordinate.y; 
+    this.speed = coordinate.speed; 
+    this.dx = coordinate.dx;
+    this.dy = coordinate.dy; 
+    this.angle = coordinate.angle;
+
+    this.type = statut.type;
+    this.health = statut.health;
+    this.energy = statut.energy;
 
     /* ===============================================================================================
     Procédure : Affichage du Player
@@ -37,7 +88,7 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
         translate(this.x, this.y);
         fill(200,50,50);
 
-        if (this.name === "Missile"){
+        if (this.type === "projectile"){
 
             rotate(this.angle);
             imageMode(CENTER);
@@ -73,7 +124,11 @@ var Entity = function(id, name, x, y, speed, dx, dy, angle){
             speed : this.speed,
             dx : this.dx,
             dy : this.dy,
-            angle : this.angle
+            angle : this.angle,
+
+            type : this.type,
+            health : this.health,
+            energy : this.energy
         }
     }
     return false;
@@ -108,6 +163,26 @@ function chooseName(){
         inp.remove();
         button.remove();
     });
+}
+
+function newEntity(data, list){
+    let coord = new Coordinates(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
+    let statut = new Statut(data.type, data.health, data.energy);
+
+    let entity = new Entity(coord, statut);
+
+    if(list === "players"){
+        if (entity.id === myId){
+            players.unshift(entity);
+        }
+        else{
+            players.push(entity);
+        }
+        console.log("Player created at x:" + entity.x, " and y: " + entity.y);
+    }
+    if(list === "projectiles"){
+        projectiles.push(entity);
+    }
 }
 
 /* ===============================================================================================
@@ -154,7 +229,7 @@ function destroyProj(i){
 
 function keyPressed(){
     if (keyCode === SHIFT) {
-        socket.emit("InputMissile", {id : players[0].id, x : players[0].x, y : players[0].y, angle : players[0].angle})
+        socket.emit("InputMissile", {id : myId, x : players[0].x, y : players[0].y, angle : players[0].angle})
       }
 }
 
@@ -205,24 +280,14 @@ function setup() {
         //console.log(myId);
     })
     socket.on("CurrentElements", function(data){
-        player = new Entity(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
-        players.push(player);
+        newEntity(data, "players")
     
         console.log("Other players created");
     })
 
     socket.on("NewPlayer", function(data){
-  
-        player = new Entity(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
-        console.log("Name2 : " + player.name);
-        if (player.id === myId){
-            players.unshift(player);
-        }
-        else{
-            players.push(player);
-        }
         
-        console.log("Player created at x:" + player.x, " and y: " + player.y);
+        newEntity(data, "players");
 
         socket.on("Ping", function(){
             if (players[0]){
@@ -241,15 +306,17 @@ function setup() {
                         players[i].dx = data.dx;
                         players[i].dy = data.dy;
                         players[i].angle = data.angle;
-                        //console.log( "x = " + players[i].x + "    ID est : " + players[i].id);
+
+                        players[i].type = data.type;
+                        players[i].health = data.health;
+                        players[i].energy = data.energy;
                     }
                 }
             })
         })
     });
     socket.on("NewMissile", function(data){
-        proj = new Entity(socket.id, "Missile", data.x, data.y, data.speed, data.dx, data.dy, data.angle);
-        projectiles.push(proj);
+        newEntity(data, "projectiles");
     })
 
     socket.on("MissileDestruction", function(data){
@@ -278,15 +345,9 @@ Output -
 function draw() {
 
 
-    // Setup
-    frameRate(50);
-
     // Choose name window
-    if (myName === ""){
-    }
+    if (myName !== ""){
 
-    else{
-        background(imgBg);
 
         // Player Control
         if(players[0]){
@@ -304,6 +365,8 @@ function draw() {
         }
 
         // Background
+
+        background(imgBg);
         fill(90, 90, 90);
         rect(-300, 150, 800, 600);
         rect(600, 150, 800, 600);
