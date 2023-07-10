@@ -35,11 +35,13 @@ Input :
 - dy : INT vitesse en y
 -------------------------------------------------------------------------------------------------- */
 
-var Statut = function(type, health, energy){
+var Statut = function(type, health, energy, xbox, ybox){
 
     this.type = type;
     this.health = health;
     this.energy = energy;
+    this.xbox = xbox;
+    this.ybox = ybox;
 
     return false;
 }
@@ -95,6 +97,8 @@ var Entity = function(coordinate, statut){
     this.type = statut.type;
     this.health = statut.health;
     this.energy = statut.energy;
+    this.xbox = statut.xbox;
+    this.ybox = statut.ybox;
 
     /* ===============================================================================================
     Procédure : Affichage du Player
@@ -147,7 +151,20 @@ var Entity = function(coordinate, statut){
 
             type : this.type,
             health : this.health,
-            energy : this.energy
+            energy : this.energy,
+            xbox : this.xbox,
+            ybox : this.ybox
+        }
+
+    }
+    this.getPosition = function(){
+        return{
+            id : this.id,
+            x : this.x,
+            y : this.y,
+            dx : this.dx,
+            dy : this.dy,
+            angle : this.angle,
         }
     }
     return false;
@@ -169,7 +186,7 @@ function seePlayers(players){
 
 function newEntity(data, list){
     let coord = new Coordinates(data.id, data.name, data.x, data.y, data.speed, data.dx, data.dy, data.angle);
-    let statut = new Statut(data.type, data.health, data.energy);
+    let statut = new Statut(data.type, data.health, data.energy, data.xbox, data.ybox);
 
     let entity = new Entity(coord, statut);
 
@@ -179,6 +196,40 @@ function newEntity(data, list){
     }
     if(list === "projectiles"){
         projectiles.push(entity);
+    }
+}
+
+
+function collisionProjectiles(){
+    let projectilesClone = JSON.parse(JSON.stringify(projectiles)); // cloning
+
+    for (var i in projectilesClone){
+        for (var j in players){
+            if (projectilesClone[i].id != players[j].id 
+                && projectilesClone[i].x >= players[j].x - (players[j].xbox/2)
+                && projectilesClone[i].x <= players[j].x + (players[j].xbox/2)
+                && projectilesClone[i].y >= players[j].y - (players[j].ybox/2)
+                && projectilesClone[i].y <= players[j].y + (players[j].ybox/2)){
+                    for (var k in projectiles){
+                        if (projectilesClone[i].name === projectiles[k].name){
+                            impactEffect(projectiles[k], players[j]);
+                            projectiles.splice(k, 1);
+                            io.emit("MissileDestruction", {i : k});
+                        }
+                    }
+                }
+        }
+    }
+}
+
+function impactEffect(projectile, player){
+    if (projectile.type === "projectile"){
+        for (var i in players){
+            if(players[i].id === projectile.id){
+                players[i].energy += 10;
+                io.emit("WinPoint", {id : players[i].id , energy : players[i].energy});
+            }
+        }
     }
 }
 
@@ -200,14 +251,24 @@ Input - VOID
 Output - VOID
 -------------------------------------------------------------------------------------------------- */
 
-function update(i){
+function update(){
     setTimeout(() => {
 
         io.local.emit("Ping", true); // Envoie de ping
+
+        for (var i in projectiles){ // Update interne des projectiles
+            projectiles[i].x += projectiles[i].dx;
+            projectiles[i].y += projectiles[i].dy;
+        }
+
+
+        // Collisions
+        collisionProjectiles()
+
         //seePlayers(projectiles);
         //seePlayers(players);
 
-        update(i++);
+        update();
     }, 20)
 }
 
@@ -222,12 +283,11 @@ var projectiles = [];
 let missileSpeed = 17;
 
 var projnames = 0;
-var i = 1;
 
 // Run the server on port
 server.listen(port, function(){
     console.log("Server started successfully on port " + port);
-    update(i);
+    update();
     
 });
 
@@ -238,7 +298,6 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
     console.log("Someone's connected, id : " + socket.id);
 
     socket.on("ImReady", function(data){ // Callback si le nouveau client soit prêt
-
         // Emet les données de joueurs au nouveau client
         for(var i in players){
             socket.emit("CurrentElements", players[i].getinfo()); 
@@ -257,7 +316,9 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
 
             type : "player",
             health : 20,
-            energy : 10
+            energy : 0,
+            xbox : 120,
+            ybox : 120,
         }
 
         newEntity(newData, "players");
@@ -291,7 +352,7 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
             
 
             let newData = {
-                id : socket.id,
+                id : data.id,
                 name : projnames.toString(),
                 x : data.x,
                 y : data.y,
@@ -302,7 +363,9 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
                 
                 type : "projectile",
                 health : 0,
-                energy : 0
+                energy : 0,
+                xbox : 10,
+                ybox : 10
             }
 
             newEntity(newData, "projectiles")
@@ -320,14 +383,9 @@ io.on('connection', function(socket){ // Callback si connexion d'un nouveau clie
                     players[i].dx = data.dx;
                     players[i].dy = data.dy;
                     players[i].angle = data.angle;
-
-                    players[i].type = data.type;
-                    players[i].health = data.health;
-                    players[i].energy = data.energy;
                     
-
                     //console.log("Data de " + players[i].id);
-                    io.local.emit("Update", players[i].getinfo()); // Emission de l'update
+                    io.local.emit("Update", players[i].getPosition()); // Emission de l'update
                 }
             }
             

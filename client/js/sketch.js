@@ -1,10 +1,4 @@
 /* ===============================================================================================
-Procédure :
-Input - 
-Output - 
--------------------------------------------------------------------------------------------------- */
-
-/* ===============================================================================================
 Objet : Player caractèrise toute les données d'un joueur
 Input : 
 - id : INT id du joueur
@@ -16,11 +10,31 @@ Input :
 - dy : INT vitesse en y
 -------------------------------------------------------------------------------------------------- */
 
-var Statut = function(type, health, energy){
+var Effect = function(img, name, x, y){
+
+    this.img = img;
+    this.name = name;
+    this.x = x;
+    this.y = y;
+
+    this.draw = function(){
+        push();
+        translate(this.x, this.y);
+
+        imageMode(CENTER);
+        image(this.img, 0, 0, 90, 90);
+        pop();
+    }
+    return false;
+}
+
+var Statut = function(type, health, energy, xbox, ybox){
 
     this.type = type;
     this.health = health;
     this.energy = energy;
+    this.xbox = xbox;
+    this.ybox = ybox;
 
     return false;
 }
@@ -76,6 +90,8 @@ var Entity = function(coordinate, statut){
     this.type = statut.type;
     this.health = statut.health;
     this.energy = statut.energy;
+    this.xbox = statut.xbox;
+    this.ybox = statut.ybox;
 
     /* ===============================================================================================
     Procédure : Affichage du Player
@@ -128,7 +144,20 @@ var Entity = function(coordinate, statut){
 
             type : this.type,
             health : this.health,
-            energy : this.energy
+            energy : this.energy,
+            xbox : this.xbox,
+            ybox : this.ybox
+        }
+
+    }
+    this.getPosition = function(){
+        return{
+            id : this.id,
+            x : this.x,
+            y : this.y,
+            dx : this.dx,
+            dy : this.dy,
+            angle : this.angle,
         }
     }
     return false;
@@ -227,6 +256,17 @@ function destroyProj(i){
     }, 3000)
 }
 
+function effectVanish(name){
+    setTimeout(() => {
+        var effectsClone = effects;
+        for (var i in effectsClone){
+            if (effectsClone[i].name === name){
+                effects.splice(i, 1);
+            }
+        }
+    }, 300)
+}
+
 function keyPressed(){
     if (keyCode === SHIFT) {
         socket.emit("InputMissile", {id : myId, x : players[0].x, y : players[0].y, angle : players[0].angle})
@@ -249,10 +289,12 @@ let myName = "";
 var player;
 var players = [];
 var projectiles = [];
+var effects = [];
 
 let imgBg;
 let imgPlayer;
 let imgMissile;
+let imgExplosion;
 
 socket = io();
 
@@ -266,6 +308,7 @@ function preload() {
     imgPlayer = loadImage("./assets/spaceship.png");
     imgMissile = loadImage("./assets/missile.png");
     imgBg = loadImage("./assets/spacebg.jpeg");
+    imgExplosion = loadImage("./assets/explosion.png");
 
 }
 function setup() {
@@ -291,7 +334,7 @@ function setup() {
 
         socket.on("Ping", function(){
             if (players[0]){
-                socket.emit("MyPosition", players[0].getinfo());
+                socket.emit("MyPosition", players[0].getPosition());
             }
 
 
@@ -306,10 +349,6 @@ function setup() {
                         players[i].dx = data.dx;
                         players[i].dy = data.dy;
                         players[i].angle = data.angle;
-
-                        players[i].type = data.type;
-                        players[i].health = data.health;
-                        players[i].energy = data.energy;
                     }
                 }
             })
@@ -320,7 +359,20 @@ function setup() {
     })
 
     socket.on("MissileDestruction", function(data){
+
+        effects.push(new Effect(imgExplosion, projectiles[data.i].name, projectiles[data.i].x, projectiles[data.i].y));
+        effectVanish(projectiles[data.i].name); //Même nom entre Effects et Projectiles
+        
         projectiles.splice(data.i, 1);
+
+    })
+
+    socket.on("WinPoint", function(data){
+        for (var i in players){
+            if (players[i].id === data.id){
+                players[i].energy = data.energy;
+            }
+        }
     })
 
     socket.on("DeleteThisId", function(data){
@@ -384,11 +436,16 @@ function draw() {
             players[i].draw();
         }
 
+        // Graphic effect
+        for(var i in effects){
+            effects[i].draw();
+        }
+
         // HUD
         fill(255,255,255);
         if (players[0]){
             textSize(30);
-            text("Your score : ", (-windowWidth/2) + 20 + players[0].x, (windowHeight/2) - 50 + players[0].y );
+            text("Your score : " + players[0].energy, (-windowWidth/2) + 20 + players[0].x, (windowHeight/2) - 50 + players[0].y );
 
             textSize(25);
             text("Press SHIFT to shoot ! ", (-windowWidth/2) + 20 + players[0].x, (-windowHeight/2) + 35 + players[0].y );
